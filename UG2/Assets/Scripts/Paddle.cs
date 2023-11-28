@@ -8,7 +8,7 @@ public class Paddle : MonoBehaviour
     private Vector2 direction;
 
     public float speed = 30f;
-
+    public float maxBounceAngle = 75f;
 
     private void Awake()
     {
@@ -37,6 +37,28 @@ public class Paddle : MonoBehaviour
         {
             rb.AddForce(direction * speed);
         }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!collision.gameObject.CompareTag("Ball"))
+        {
+            return;
+        }
+
+        Rigidbody2D ball = collision.rigidbody;
+        Collider2D paddle = collision.otherCollider;
+
+        // Gather information about the collision
+        Vector2 ballDirection = ball.velocity.normalized;
+        Vector2 contactDistance = paddle.bounds.center - ball.transform.position;
+
+        // Rotate the direction of the ball based on the contact distance
+        // to make the gameplay more dynamic and interesting
+        float bounceAngle = (contactDistance.x / paddle.bounds.size.x) * maxBounceAngle;
+        ballDirection = Quaternion.AngleAxis(bounceAngle, Vector3.forward) * ballDirection;
+
+        ball.velocity = ballDirection * ball.velocity.magnitude;
     }
 
 }
