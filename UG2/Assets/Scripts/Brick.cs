@@ -1,9 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Brick : MonoBehaviour
 {
+    public delegate void BrickDestroyed();
+    public event BrickDestroyed OnBrickDestroyed;
+
     public int points = 100;
     public Sprite[] states;
     public bool unbreakable;
@@ -52,12 +53,16 @@ public class Brick : MonoBehaviour
         if (health <= 0)
         {
             gameObject.SetActive(false);
+            NotifyGameManager();
         }
         else
         {
             spriteRenderer.sprite = states[health - 1];
         }
+    }
 
-        GameManager.Instance.OnBrickHit(this);
+    private void NotifyGameManager()
+    {
+        OnBrickDestroyed?.Invoke();
     }
 }
