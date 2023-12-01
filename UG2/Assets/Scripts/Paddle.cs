@@ -61,4 +61,10 @@ public class Paddle : MonoBehaviour
         ball.velocity = ballDirection * ball.velocity.magnitude;
     }
 
+    public void ResetPaddle()
+    {
+        rb.velocity = Vector2.zero;
+        transform.position = new Vector2(0f, transform.position.y);
+    }
+
 }

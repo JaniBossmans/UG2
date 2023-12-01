@@ -59,6 +59,8 @@ public class Brick : MonoBehaviour
         {
             spriteRenderer.sprite = states[health - 1];
         }
+
+        FindObjectOfType<GameManager>().OnBrickHit(this);
     }
 
     private void NotifyGameManager()

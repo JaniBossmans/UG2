@@ -1,87 +1,165 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Collections.Generic;
-using System.Linq;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance { get; private set; }
+    private static GameManager m_Instance;
+    public static GameManager Instance
+    {
+        get
+        {
+            if (m_Instance == null)
+            {
+                m_Instance = FindObjectOfType<GameManager>();
+                if (m_Instance == null)
+                {
+                    GameObject go = new GameObject("Game Manager");
+                    m_Instance = go.AddComponent<GameManager>();
+                }
+            }
+            return m_Instance;
+        }
+    }
 
-    private int bricksToDestroy;
-    private int score = 0;
-    private int level = 1;
     private const int NUM_LEVELS = 2;
+
+    private Ball ball;
+    private Paddle paddle;
+    private Brick[] bricks;
+
+    private int level = 1;
+    private int score = 0;
+    private int lives = 3;
+
+    public int Level => level;
+    public int Score => score;
+    public int Lives => lives;
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (m_Instance != null)
         {
-            Destroy(gameObject);
-        }
-        else
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-    }
-
-    private void Start()
-    {
-        InitializeGameComponents();
-        NewGame();
-    }
-
-    private void InitializeGameComponents()
-    {
-        bricksToDestroy = 0;
-        Brick[] bricksArray = GameObject.FindGameObjectsWithTag("Brick").Select(go => go.GetComponent<Brick>()).ToArray();
-        foreach (Brick brick in bricksArray)
-        {
-            brick.OnBrickDestroyed += HandleBrickDestroyed;
-            if (!brick.unbreakable)
-            {
-                bricksToDestroy++;
-            }
-        }
-    }
-
-    private void NewGame()
-    {
-        score = 0;
-    }
-
-    public void OnBrickHit(Brick brick)
-    {
-        score += brick.points;
-    }
-
-    private void HandleBrickDestroyed()
-    {
-        bricksToDestroy--;
-
-        if (bricksToDestroy <= 0)
-        {
-            LoadNextLevel();
-        }
-    }
-
-    private void LoadNextLevel()
-    {
-        level++;
-
-        if (level > NUM_LEVELS)
-        {
-            LoadLevel(1);
+            DestroyImmediate(gameObject);
             return;
         }
 
-        SceneManager.LoadScene("Level" + level);
-        InitializeGameComponents(); // Reinitialize components for the new level
+        m_Instance = this;
+        DontDestroyOnLoad(gameObject);
+        FindSceneReferences();
+        SceneManager.sceneLoaded += OnLevelLoaded;
+    }
+
+    
+
+
+
+
+    private void FindSceneReferences()
+    {
+        ball = FindObjectOfType<Ball>();
+        paddle = FindObjectOfType<Paddle>();
+        bricks = FindObjectsOfType<Brick>();
     }
 
     private void LoadLevel(int level)
     {
         this.level = level;
+
+        if (level > NUM_LEVELS)
+        {
+            // Start over again at level 1 once you have beaten all the levels
+            // You can also load a "Win" scene instead
+            LoadLevel(1);
+            return;
+        }
+
         SceneManager.LoadScene("Level" + level);
     }
+
+    private void OnLevelLoaded(Scene scene, LoadSceneMode mode)
+    {
+        FindSceneReferences();
+    }
+
+    public void OnBallMiss()
+    {
+        lives--;
+
+        if (lives > 0)
+        {
+            ResetLevel();
+        }
+        else
+        {
+            Debug.Log("Game Over due to no lives remaining.");
+            GameOver();
+        }
+    }
+
+
+    private void ResetLevel()
+    {
+        paddle.ResetPaddle();
+        ball.ResetBall();
+    }
+
+    private void GameOver()
+    {
+        // Start a new game immediately
+        // You can also load a "GameOver" scene instead
+        SceneManager.LoadScene("ScoreScene");
+    }
+
+    private void Start()
+    {
+        NewGame();
+    }
+
+
+    private void NewGame()
+    {
+        score = 0;
+        lives = 3;
+    }
+
+    public void OnBrickHit(Brick brick)
+    {
+        score += brick.points;
+
+        if (Cleared())
+        {
+            LoadLevel(level + 1);
+        }
+    }
+
+
+    public int GetCurrentLives()
+    {
+        return lives;
+    }
+
+    public int GetCurrentScore()
+    {
+        return score;
+    }
+
+    public int GetCurrentLevel()
+    {
+        return level;
+    }
+
+
+    private bool Cleared()
+    {
+        for (int i = 0; i < bricks.Length; i++)
+        {
+            if (bricks[i].gameObject.activeInHierarchy && !bricks[i].unbreakable)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 }
